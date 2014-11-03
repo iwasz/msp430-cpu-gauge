@@ -2,6 +2,8 @@
  * Copyright (c) 2014, Texas Instruments Incorporated
  * All rights reserved.
  *
+ * Highly modified by me (iwasz).
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -82,14 +84,14 @@ extern __no_init tEDB __data16 tInputEndPointDescriptorBlock[];
 extern __no_init tEDB __data16 tOutputEndPointDescriptorBlock[];
 
 
-void HidCopyUsbToBuff (uint8_t* pEP, uint8_t* pCT, uint8_t);
+void vendorCopyUsbToBuff (uint8_t* pEP, uint8_t* pCT, uint8_t);
 
 /*----------------------------------------------------------------------------+
  | Functions' implementatin                                                    |
  +----------------------------------------------------------------------------*/
 
 //resets internal HID data structure
-void HidResetData ()
+void vendorResetData ()
 {
     int16_t i;
 
@@ -102,125 +104,12 @@ void HidResetData ()
     }
 }
 
-//
-//! \endcond
-//
-
-//*****************************************************************************
-//
-//! Receives a Report from the Host into \b reportData.
-//!
-//! \param reportData is an array containing the report.
-//! \param intfNum is the HID interface over which the data is to be
-//! 	received.
-//!
-//! Receives a report from the host into \b reportData, on interface
-//! \b intfNum. It is expected that the host will organize the report in the
-//! format defined by the report descriptor in descriptors.c.
-//! 
-//! When the function returns \b kUSBHID_receiveCompleted, the data has been
-//! successfully copied from the USB receive buffers into \b reportData. If the
-//! function returns \b kUSBHID_busNotAvailable, then the bus has either been
-//! disconnected or the device is suspended, allowing no reports to be sent. If
-//! the function returns \b kUSBHID_generalError, it means the call failed for
-//! unspecified reasons.
-//! 
-//! The call is intended to be called only when it is known that a report is in
-//! the USB buffer. This means it is best called in response to the API calling
-//! USBHID_handleDataReceived(), which indicates that a report has been received
-//! for interface \b intfNum.
-//! 
-//! \return Any of the following:
-//! 		- \b kUSBHID_receiveCompleted
-//! 		- \b kUSBHID_busNotAvailable
-//! 		- \b kUSBHID_intfBusyError
-//
-//*****************************************************************************
-
-//uint8_t USBHID_receiveReport (uint8_t * reportData, uint8_t intfNum)
-//{
-//    uint8_t ret = kUSBHID_generalError;
-//    uint8_t nTmp1 = 0;
-//
-//    uint8_t edbIndex;
-//
-//    edbIndex = stUsbHandle[intfNum].edb_Index;
-//
-//    //do not access USB memory if suspended (PLL off). It may produce BUS_ERROR
-//    if ((bFunctionSuspended) ||
-//        (bEnumerationStatus != ENUMERATION_COMPLETE)){
-//        return (kUSBHID_busNotAvailable);
-//    }
-//
-//    if (HidReadCtrl[INTFNUM_OFFSET(intfNum)].bCurrentBufferXY == X_BUFFER){ //this is current buffer
-//        if (tOutputEndPointDescriptorBlock[edbIndex].bEPBCTX & EPBCNT_NAK){ //this buffer has a valid data packet
-//            //this is the active EP buffer
-//            //pEP1
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos =
-//                (uint8_t*)stUsbHandle[intfNum].oep_X_Buffer;
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1 =
-//                &tOutputEndPointDescriptorBlock[edbIndex].bEPBCTX;
-//
-//            //second EP buffer
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pEP2 =
-//                (uint8_t*)stUsbHandle[intfNum].oep_Y_Buffer;
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT2 =
-//                &tOutputEndPointDescriptorBlock[edbIndex].bEPBCTY;
-//            nTmp1 = 1;                                                      //indicate that data is available
-//        }
-//    } else {                                                                //Y_BUFFER
-//        if (tOutputEndPointDescriptorBlock[edbIndex].bEPBCTY & EPBCNT_NAK){
-//            //this is the active EP buffer
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos =
-//                (uint8_t*)stUsbHandle[intfNum].oep_Y_Buffer;
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1 =
-//                &tOutputEndPointDescriptorBlock[edbIndex].bEPBCTY;
-//
-//            //second EP buffer
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pEP2 =
-//                (uint8_t*)stUsbHandle[intfNum].oep_X_Buffer;
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT2 =
-//                &tOutputEndPointDescriptorBlock[edbIndex].bEPBCTX;
-//            nTmp1 = 1;                                                      //indicate that data is available
-//        }
-//    }
-//
-//    if (nTmp1){
-//        //how many byte we can get from one endpoint buffer
-//        nTmp1 = *HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1;
-//
-//        if (nTmp1 & EPBCNT_NAK){
-//            nTmp1 = nTmp1 & 0x7f;                                           //clear NAK bit
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp = nTmp1;        //holds how many valid bytes in the EP buffer
-//
-//            USB_RX_memcpy(reportData, HidReadCtrl[INTFNUM_OFFSET(
-//                                                      intfNum)].pCurrentEpPos,
-//                nTmp1);
-//            //memcpy(reportData, HidReadCtrl.pEP1, nTmp1);
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].bCurrentBufferXY =
-//                (HidReadCtrl[INTFNUM_OFFSET(intfNum)].bCurrentBufferXY +
-//                 1) & 0x01;
-//            HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp = 0;
-//            *HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1 = 0;                 //clear NAK, EP ready to receive data
-//
-//            ret = kUSBHID_receiveCompleted;
-//        }
-//    }
-//    return (ret);
-//}
-
-
-
-//
-//! \cond
-//
-
 //This function copies data from OUT endpoint into user's buffer
 //Arguments:
 //pEP - pointer to EP to copy from
 //pCT - pointer to pCT control reg
 //
-void HidCopyUsbToBuff (uint8_t* pEP, uint8_t* pCT, uint8_t intfNum)
+void vendorCopyUsbToBuff (uint8_t* pEP, uint8_t* pCT, uint8_t intfNum)
 {
         uint8_t nCount;
 
@@ -296,7 +185,7 @@ void HidCopyUsbToBuff (uint8_t* pEP, uint8_t* pCT, uint8_t intfNum)
 //
 //*****************************************************************************
 
-uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
+uint8_t vendorReceiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
 {
     uint8_t nTmp1;
     uint16_t state;
@@ -332,7 +221,7 @@ uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
     //read rest of data from buffer, if any
     if (HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp > 0){
         //copy data from pEP-endpoint into User's buffer
-        HidCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos,
+        vendorCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos,
             HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1,intfNum);
 
         if (HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesToReceiveLeft == 0){ //the Receive opereation is completed
@@ -363,7 +252,7 @@ uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
             }
 
             HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos += 2;        //here starts user data
-            HidCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos, HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1,intfNum);
+            vendorCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos, HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1,intfNum);
         }
 
         if (HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesToReceiveLeft == 0){ //the Receive opereation is completed
@@ -423,7 +312,7 @@ uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
                 HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp = nTmp1 - 2;
             }
             HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCurrentEpPos += 2;        //here starts user data
-            HidCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(
+            vendorCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(
                                              intfNum)].pCurrentEpPos,
                 HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1,intfNum);
 
@@ -440,7 +329,7 @@ uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum)
                     HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp = nTmp1 - 2;
                 }
                 HidReadCtrl[INTFNUM_OFFSET(intfNum)].pEP2 += 2;             //here starts user data
-                HidCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(
+                vendorCopyUsbToBuff(HidReadCtrl[INTFNUM_OFFSET(
                                                  intfNum)].pEP2,
                     HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT2,intfNum);
                 HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1 =
@@ -521,7 +410,7 @@ int16_t vendorToBufferFromHost (uint8_t intfNum)
 //                pEP1 += 2;                                                              //here starts user data
 
                 HidReadCtrl[INTFNUM_OFFSET(intfNum)].nBytesInEp = nTmp1;
-                HidCopyUsbToBuff(pEP1, HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1, intfNum);
+                vendorCopyUsbToBuff(pEP1, HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT1, intfNum);
 
 //                nTmp1 = *HidReadCtrl[INTFNUM_OFFSET(intfNum)].pCT2;
 
@@ -595,7 +484,7 @@ int16_t vendorIsReceiveInProgress (uint8_t intfNum)
 //
 //*****************************************************************************
 
-uint8_t USBHID_abortReceive (uint16_t* size, uint8_t intfNum)
+uint8_t vendorAbortReceive (uint16_t* size, uint8_t intfNum)
 {
     uint16_t state;
     uint8_t edbIndex;
@@ -639,7 +528,7 @@ uint8_t USBHID_abortReceive (uint16_t* size, uint8_t intfNum)
 //
 //*****************************************************************************
 
-uint8_t USBHID_rejectData (uint8_t intfNum)
+uint8_t vendorRejectData (uint8_t intfNum)
 {
 	uint16_t state;
     uint8_t edbIndex;
@@ -718,7 +607,7 @@ uint8_t USBHID_rejectData (uint8_t intfNum)
 //
 //*****************************************************************************
 
-uint8_t USBHID_intfStatus (uint8_t intfNum, uint16_t* bytesSent, uint16_t* bytesReceived)
+uint8_t vendorIntfStatus (uint8_t intfNum, uint16_t* bytesSent, uint16_t* bytesReceived)
 {
     uint8_t ret = 0;
     uint16_t stateIn, stateOut;
@@ -781,10 +670,9 @@ uint8_t USBHID_intfStatus (uint8_t intfNum, uint16_t* bytesSent, uint16_t* bytes
 //
 //*****************************************************************************
 
-uint8_t USBHID_bytesInUSBBuffer (uint8_t intfNum)
+uint8_t vendorBytesInUSBBuffer (uint8_t intfNum)
 {
         uint8_t bTmp1 = 0;
-        uint8_t bTmp2;
         uint8_t edbIndex;
         uint16_t state;
 

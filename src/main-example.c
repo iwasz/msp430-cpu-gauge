@@ -43,13 +43,12 @@
  * Please refer to the Examples Guide for more details.
  * ---------------------------------------------------------------------------*/
 #include <string.h>
-
 #include "driverlib.h"
-
 #include "usbConfig/descriptors.h"
 #include "USB_API/USB_Common/device.h"
 #include "USB_API/USB_Common/usb.h"                 // USB-specific functions#include "USB_API/USB_CDC_API/UsbCdc.h"
 #include "usbApp/usbConstructs.h"
+#include "motor.h"
 
 /*
  * NOTE: Modify hal.h to select a specific evaluation board and customize for
@@ -77,19 +76,15 @@ char dataBuffer[BUFFER_SIZE];
  */
 int main (void)
 {
-        WDT_A_hold(WDT_A_BASE); // Stop watchdog timer
+        WDT_A_hold (WDT_A_BASE); // Stop watchdog timer
 
         // Minumum Vcore setting required for the USB API is PMM_CORE_LEVEL_2 .
-#ifndef DRIVERLIB_LEGACY_MODE
-        PMM_setVCore(PMM_CORE_LEVEL_2);
+        PMM_setVCore (PMM_CORE_LEVEL_2);
 
-#else
-        PMM_setVCore(PMM_BASE, PMM_CORE_LEVEL_2);
-#endif
-
-        initPorts();           // Config GPIOS for low-power (output low)
-        initClocks(8000000);   // Config clocks. MCLK=SMCLK=FLL=8MHz; ACLK=REFO=32kHz
-        USB_setup(TRUE, TRUE);  // Init USB & events; if a host is present, connect
+        initPorts ();           // Config GPIOS for low-power (output low)
+        initClocks (8000000);   // Config clocks. MCLK=SMCLK=FLL=8MHz; ACLK=REFO=32kHz
+        USB_setup (TRUE, TRUE);  // Init USB & events; if a host is present, connect
+        initPWM ();
 
         __enable_interrupt();
         // Enable interrupts globally
@@ -112,21 +107,20 @@ int main (void)
                                 bHID_DataReceived_event = FALSE;        // Clear flag early -- just in case execution breaks below because of an error
                                 count = hidReceiveDataInBuffer((uint8_t*) dataBuffer, BUFFER_SIZE, HID0_INTFNUM);
 
-                                uint16_t load16 = 0;
-
-                                if (count >= 2) {
-                                        load16 = (dataBuffer[0] << 8) | dataBuffer[1];
-                                }
+//                                uint16_t load16 = 0;
+//
+//                                if (count >= 2) {
+//                                        load16 = (dataBuffer[0] << 8) | dataBuffer[1];
+//                                }
 
                                 memset(wholeString, 0, MAX_STR_LENGTH);   // Clear wholeString
                                 strncat(wholeString, (char*) dataBuffer, 2);
-                                strncat(wholeString, ",\r\n", 3);
+                                strncat(wholeString, "\r\n", 2);
 
                                 if (cdcSendDataInBackground((uint8_t*) wholeString, strlen(wholeString), CDC0_INTFNUM, 1)) {  // Send message to other CDC App
                                         SendError = 0x01;
                                         break;
                                 }
-                                memset(wholeString, 0, MAX_STR_LENGTH);   // Clear wholeString
                         }
 
                         if (bCDC_DataReceived_event) { // Message is received from CDC application

@@ -87,14 +87,14 @@ uint16_t hidReceiveDataInBuffer (uint8_t* dataBuf, uint16_t size, uint8_t intfNu
         uint16_t rxCount = 0;
         uint8_t* currentPos = dataBuf;
 
-        while ((bytesInBuf = USBHID_bytesInUSBBuffer(intfNum))) {
+        while ((bytesInBuf = vendorBytesInUSBBuffer(intfNum))) {
                 if ((uint16_t) (currentPos - dataBuf + bytesInBuf) <= size) {
                         rxCount = bytesInBuf;
-                        USBHID_receiveData(currentPos, rxCount, intfNum);
+                        vendorReceiveData(currentPos, rxCount, intfNum);
                         currentPos += rxCount;
                 } else {
                         rxCount = size - (currentPos - dataBuf);
-                        USBHID_receiveData(currentPos, rxCount, intfNum);
+                        vendorReceiveData(currentPos, rxCount, intfNum);
                         currentPos += rxCount;
                         return (currentPos - dataBuf);
                 }

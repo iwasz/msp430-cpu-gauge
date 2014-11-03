@@ -91,14 +91,14 @@ uint8_t USBHID_sendData (const uint8_t* data, uint16_t size, uint8_t intfNum);
 /*
  * Receives data over interface intfNum, of size size, into memory starting at address data.
  */
-uint8_t USBHID_receiveData (uint8_t* data, uint16_t size, uint8_t intfNum);
+uint8_t vendorReceiveData (uint8_t* data, uint16_t size, uint8_t intfNum);
 
 /*
  * Aborts an active receive operation on interface intfNum.
  * size: the number of bytes that were received and transferred
  * to the data location established for this receive operation.
  */
-uint8_t USBHID_abortReceive (uint16_t* size, uint8_t intfNum);
+uint8_t vendorAbortReceive (uint16_t* size, uint8_t intfNum);
 
 
 #define kUSBHID_noDataWaiting 1 //returned by USBHID_rejectData() if no data pending
@@ -106,7 +106,7 @@ uint8_t USBHID_abortReceive (uint16_t* size, uint8_t intfNum);
 /*
  * This function rejects payload data that has been received from the host.
  */
-uint8_t USBHID_rejectData (uint8_t intfNum);
+uint8_t vendorRejectData (uint8_t intfNum);
 
 /*
  * Aborts an active send operation on interface intfNum.  Returns the number of bytes that were sent prior to the abort, in size.
@@ -135,12 +135,12 @@ uint8_t USBHID_abortSend (uint16_t* size, uint8_t intfNum);
  * returns kUSBHID_dataWaiting (indicates that data has been received
  * from the host, waiting in the USB receive buffers)
  */
-uint8_t USBHID_intfStatus (uint8_t intfNum, uint16_t* bytesSent, uint16_t* bytesReceived);
+uint8_t vendorIntfStatus (uint8_t intfNum, uint16_t* bytesSent, uint16_t* bytesReceived);
 
 /*
  * Returns how many bytes are in the buffer are received and ready to be read.
  */
-uint8_t USBHID_bytesInUSBBuffer (uint8_t intfNum);
+uint8_t vendorBytesInUSBBuffer (uint8_t intfNum);
 
 /*----------------------------------------------------------------------------
  * Event-Handling routines
