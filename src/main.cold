@@ -1,0 +1,146 @@
+
+/**
+ * Uwaga - mylące nazwy :
+ * TAxCTL - główny rejestr kontrolny.
+ * TAxCCTL[0-6] - Timer_Ax Capture/Compare Control 0-6
+ * TAxCCR[0-6] - Timer_Ax Capture/Compare 0-6. Mają podwójną funkcję. Kiedy pracują jako 'capture', współpracują z jakimś wejściem. Gdy
+ *               na tym wejściu pojawi się zdarzenie, wartość z licznika TAxR jest kopiowana do rejestru.
+ *               W trybie compare jest odwrotnie. Do rejestrów TAxCCR zapisujemy jakąś wartość, która jest porównywana z licznikiem TAxR.
+ *               Gdy są równe, generowane jest zdarzenie (zazwyczaj zmiana stanu jakiegoś wyjścia i/lub przerwanie). W ten sposób generujemy
+ *               PWM.
+ */
+int main (void)
+{
+#if 0
+        //Stop WDT
+        WDT_A_hold(WDT_A_BASE);
+
+        //P2.0 as PWM output
+        GPIO_setAsPeripheralModuleFunctionOutputPin(
+                GPIO_PORT_P2,
+                GPIO_PIN0
+                );
+
+        //Generate PWM - Timer runs in Up-Down mode
+        TIMER_A_generatePWM(TIMER_A1_BASE,
+                            TIMER_A_CLOCKSOURCE_SMCLK,
+                            TIMER_A_CLOCKSOURCE_DIVIDER_1,
+                            TIMER_PERIOD,
+                            TIMER_A_CAPTURECOMPARE_REGISTER_1,
+                            TIMER_A_OUTPUTMODE_RESET_SET,
+                            DUTY_CYCLE
+                            );
+
+        //Enter LPM0
+        __bis_SR_register(LPM0_bits);
+
+        //For debugger
+        __no_operation();
+#endif
+
+
+
+        //Stop watchdog timer
+        WDT_A_hold(WDT_A_BASE);
+
+//        //Set P1.0 to output direction
+//        GPIO_setAsOutputPin(
+//                GPIO_PORT_P1,
+//                GPIO_PIN0
+//                );
+
+        //Port select XT1
+//        GPIO_setAsPeripheralModuleFunctionInputPin (GPIO_PORT_P5, GPIO_PIN2 | GPIO_PIN3);
+//        GPIO_setAsPeripheralModuleFunctionInputPin (GPIO_PORT_P7, GPIO_PIN0 | GPIO_PIN1);
+
+        //Initializes the XT1 crystal oscillator with no timeout
+        //In case of failure, code hangs here.
+        //For time-out instead of code hang use UCS_LFXT1StartWithTimeout()
+//        UCS_LFXT1Start (UCS_XT1_DRIVE0, UCS_XCAP_3);
+
+        UCS_clockSignalInit(
+                 UCS_FLLREF,
+                 UCS_REFOCLK_SELECT,
+                 UCS_CLOCK_DIVIDER_1);
+
+         UCS_clockSignalInit(
+                 UCS_ACLK,
+                 UCS_REFOCLK_SELECT,
+                 UCS_CLOCK_DIVIDER_1);
+
+         UCS_clockSignalInit(
+                 UCS_SMCLK,
+                 UCS_REFOCLK_SELECT,
+                 UCS_CLOCK_DIVIDER_1);
+
+         UCS_initFLLSettle(
+                 CLK_FREQ / 1000,
+                 CLK_FREQ / 32768);
+
+        // Enable global oscillator fault flag
+//        SFR_clearInterrupt (SFR_OSCILLATOR_FAULT_INTERRUPT);
+//        SFR_enableInterrupt (SFR_OSCILLATOR_FAULT_INTERRUPT);
+
+        // Enable global interrupt
+//        __bis_SR_register (GIE);
+
+//        //Enter LPM3 w/ interrupts
+//        __bis_SR_register (LPM3_bits + GIE);
+//
+
+
+
+
+
+
+
+#if 1
+        // Stop watchdog timer
+        WDTCTL = WDTPW | WDTHOLD;
+
+
+//        //Enter LPM0
+//        __bis_SR_register(LPM0_bits);
+//
+//        //For debugger
+//        __no_operation();
+
+//        GPIO_setAsOutputPin (GPIO_PORT_P1, GPIO_PIN0 | GPIO_PIN1 | GPIO_PIN2 | GPIO_PIN3);
+
+
+        while (1) {
+
+                for (int j = 0; j < STEPS; ++j) {
+
+                        setWinding1 (COSINE[j]);
+                        setWinding2 (SINE[j]);
+
+                        // Delay
+                        for (int i = 0; i < 128; ++i)
+                                ;
+                }
+        }
+//
+//
+//
+////        P1DIR |= 0x01;                                  // Set P1.0 to output direction
+////
+////
+////        for(;;) {
+////                volatile unsigned int i;        // volatile to prevent optimization
+////
+////                P6OUT = GPIO_PIN0 | GPIO_PIN2 | GPIO_PIN3;
+////                for (i = 0; i < 10000; ++i);
+////                P6OUT = GPIO_PIN0 | GPIO_PIN1 | GPIO_PIN2 | GPIO_PIN3;
+////                for (i = 0; i < 10000; ++i);
+////                P6OUT = GPIO_PIN1 | GPIO_PIN2 | GPIO_PIN3;
+////                for (i = 0; i < 10000; ++i);
+////                P6OUT =  GPIO_PIN2 | GPIO_PIN3;
+////                for (i = 0; i < 10000; ++i);
+////        }
+//
+//        return 0;
+#endif
+}
+
+
