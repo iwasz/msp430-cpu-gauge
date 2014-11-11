@@ -117,17 +117,19 @@ void initPorts (void)
 void initClocks (uint32_t mclkFreq)
 {
 #ifndef DRIVERLIB_LEGACY_MODE
-        UCS_clockSignalInit(
-        UCS_FLLREF,
-        UCS_REFOCLK_SELECT,
-        UCS_CLOCK_DIVIDER_1);
+        UCS_bypassXT2 ();
 
         UCS_clockSignalInit(
-        UCS_ACLK,
-        UCS_REFOCLK_SELECT,
-        UCS_CLOCK_DIVIDER_1);
+                UCS_FLLREF,
+                UCS_REFOCLK_SELECT,
+                UCS_CLOCK_DIVIDER_1);
 
-        UCS_initFLLSettle(mclkFreq / 1000, mclkFreq / 32768);
+        UCS_clockSignalInit(
+                UCS_ACLK,
+                UCS_REFOCLK_SELECT,
+                UCS_CLOCK_DIVIDER_1);
+
+        UCS_initFLLSettle (mclkFreq / 1000, mclkFreq / 32768);
 #else
 
         UCS_clockSignalInit(

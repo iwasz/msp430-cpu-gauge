@@ -15,5 +15,6 @@ extern void initPWM (void);
 extern void moveAbsolute (uint16_t microSteps);
 extern void moveRightRelative (uint16_t microSteps);
 extern void moveLeftRelative (uint16_t microSteps);
+extern void rotate (void);
 
 #endif /* MOTOR_H_ */

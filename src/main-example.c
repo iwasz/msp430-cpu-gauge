@@ -88,6 +88,9 @@ int main (void)
         __enable_interrupt();
         // Enable interrupts globally
 
+        initPWM ();
+        rotate ();
+
         while (1) {
                 uint8_t ReceiveError = 0, SendError = 0;
                 uint16_t count;
@@ -106,20 +109,22 @@ int main (void)
                                 bHID_DataReceived_event = FALSE;        // Clear flag early -- just in case execution breaks below because of an error
                                 count = hidReceiveDataInBuffer((uint8_t*) dataBuffer, BUFFER_SIZE, HID0_INTFNUM);
 
-//                                uint16_t load16 = 0;
-//
-//                                if (count >= 2) {
-//                                        load16 = (dataBuffer[0] << 8) | dataBuffer[1];
-//                                }
+                                uint16_t load16 = 0;
 
-                                memset(wholeString, 0, MAX_STR_LENGTH);   // Clear wholeString
-                                strncat(wholeString, (char*) dataBuffer, 2);
-                                strncat(wholeString, "\r\n", 2);
-
-                                if (cdcSendDataInBackground((uint8_t*) wholeString, strlen(wholeString), CDC0_INTFNUM, 1)) {  // Send message to other CDC App
-                                        SendError = 0x01;
-                                        break;
+                                if (count >= 2) {
+                                        load16 = (dataBuffer[0] << 8) | dataBuffer[1];
                                 }
+
+//                                moveAbsolute (load16);
+
+//                                memset(wholeString, 0, MAX_STR_LENGTH);   // Clear wholeString
+//                                strncat(wholeString, (char*) dataBuffer, 2);
+//                                strncat(wholeString, "\r\n", 2);
+//
+//                                if (cdcSendDataInBackground((uint8_t*) wholeString, strlen(wholeString), CDC0_INTFNUM, 1)) {  // Send message to other CDC App
+//                                        SendError = 0x01;
+//                                        break;
+//                                }
                         }
 
                         if (bCDC_DataReceived_event) { // Message is received from CDC application

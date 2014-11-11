@@ -97,10 +97,10 @@ void setWinding1 (int power)
 //        TA0CCR1 = 0;
 
         if (power >= 0) {
-                P6OUT &= ~GPIO_PIN2;
+                P1OUT &= ~GPIO_PIN0;
         }
         else {
-                P6OUT |= GPIO_PIN2;
+                P1OUT |= GPIO_PIN0;
         }
 }
 
@@ -110,10 +110,10 @@ void setWinding2 (int power)
 //        TA0CCR2 = 0;
 
         if (power >= 0) {
-                P6OUT &= ~GPIO_PIN3;
+                P1OUT &= ~GPIO_PIN1;
         }
         else {
-                P6OUT |= GPIO_PIN3;
+                P1OUT |= GPIO_PIN1;
         }
 }
 
@@ -123,7 +123,8 @@ void setWinding2 (int power)
 void initPWM (void)
 {
         GPIO_setAsPeripheralModuleFunctionOutputPin (GPIO_PORT_P1, GPIO_PIN2 | GPIO_PIN3);
-        GPIO_setAsOutputPin (GPIO_PORT_P6, GPIO_PIN0 | GPIO_PIN1 | GPIO_PIN2 | GPIO_PIN3);
+//        GPIO_setAsOutputPin (GPIO_PORT_P6, GPIO_PIN0 | GPIO_PIN1 | GPIO_PIN2 | GPIO_PIN3);
+        GPIO_setAsOutputPin (GPIO_PORT_P1, GPIO_PIN0 | GPIO_PIN1);
 
         /*
          * Konfiguracja pierwszego timera typu A. Wybór źródła sygnału zegarowego za pomocą :
@@ -268,3 +269,18 @@ void moveAbsolute (uint16_t microSteps)
         }
 }
 
+void rotate (void)
+{
+        while (1) {
+
+                for (int j = 0; j < STEPS; ++j) {
+
+                        setWinding1 (COSINE[j]);
+                        setWinding2 (SINE[j]);
+
+                        // Delay
+                        for (int i = 0; i < 1024; ++i)
+                                ;
+                }
+        }
+}
