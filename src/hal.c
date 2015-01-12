@@ -38,6 +38,8 @@
 #include "USB_API/USB_Common/device.h"
 #include "usbConfig/descriptors.h"
 #include "hal.h"
+#include "inc/hw_regaccess.h"
+#include "inc/hw_memmap.h"
 
 #define GPIO_ALL	GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3| \
 					GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7
@@ -117,19 +119,129 @@ void initPorts (void)
 void initClocks (uint32_t mclkFreq)
 {
 #ifndef DRIVERLIB_LEGACY_MODE
-        UCS_bypassXT2 ();
 
-        UCS_clockSignalInit(
-                UCS_FLLREF,
-                UCS_REFOCLK_SELECT,
-                UCS_CLOCK_DIVIDER_1);
+////        TODO wywalić to.
+////        UCS_bypassXT2 ();
+//
+//        UCS_clockSignalInit(
+//                UCS_FLLREF,
+//                UCS_REFOCLK_SELECT,
+//                UCS_CLOCK_DIVIDER_1);
+//
+//        UCS_clockSignalInit(
+//                UCS_ACLK,
+//                UCS_REFOCLK_SELECT,
+//                UCS_CLOCK_DIVIDER_1);
+////
+////        UCS_clockSignalInit(
+////                UCS_SMCLK,
+////                UCS_VLOCLK_SELECT,
+////                UCS_CLOCK_DIVIDER_32);
+//
+//        UCS_initFLLSettle (mclkFreq / 1000, mclkFreq / 32768);
 
-        UCS_clockSignalInit(
-                UCS_ACLK,
-                UCS_REFOCLK_SELECT,
-                UCS_CLOCK_DIVIDER_1);
+        GPIO_setAsPeripheralModuleFunctionInputPin(
+                GPIO_PORT_P5,
+                GPIO_PIN2 + GPIO_PIN3
+                );
 
-        UCS_initFLLSettle (mclkFreq / 1000, mclkFreq / 32768);
+        //Initialize XT2. Returns STATUS_SUCCESS if initializes successfully
+        UCS_XT2StartWithTimeout(
+                UCS_XT2DRIVE_4MHZ_8MHZ,
+                50000
+                );
+
+
+        /*
+         * FLL
+         * Patrz rysunek po kolei:
+         * Ustawienie SELREF, czyli źródla FLL (domyślnie XT1CLK)
+         * FLLREFDIV__1    : Reference Divider: f(LFCLK)/1
+         * FLLREFDIV__2    : Reference Divider: f(LFCLK)/2
+         * FLLREFDIV__4    : Reference Divider: f(LFCLK)/4
+         * FLLREFDIV__8    : Reference Divider: f(LFCLK)/8
+         * FLLREFDIV__12   : Reference Divider: f(LFCLK)/12
+         * FLLREFDIV__16   : Reference Divider: f(LFCLK)/16
+         *                 :
+         * SELREF__XT1CLK  : Multiply Selected Loop Freq. By XT1CLK (DEFAULT)
+         * SELREF__REFOCLK : Multiply Selected Loop Freq. By REFOCLK
+         * SELREF__XT2CLK  : Multiply Selected Loop Freq. By XT2CLK
+         *
+         * Znów operator "=", bo nie ma w tym rejestrze nic innego prócz tych 2 ustawień
+         */
+        HWREG16 (UCS_BASE | OFS_UCSCTL3) = SELREF__XT2CLK | FLLREFDIV__4;
+
+//        // Zapamiętaj stan rejestru SG0
+//        uint16_t srRegisterState = __get_SR_register() & SCG0;
+
+        //Set DCO to lowest Tap
+        //HWREG8 (UCS_BASE | OFS_UCSCTL0_H) = 0x0000;
+
+        /*
+         * FLLN = 24 oraz FLLD = 0; Mnożnik 6 oznacza 1 * (24 + 1) = 25MHz
+         * Pierwsze 1 jest bo FLLREFDIV__4 dzieli 4MHz na 4, czyli 1MHz.
+         */
+        HWREG16 (UCS_BASE | OFS_UCSCTL2) = (24 & 0x03ff) | 0 << 10;
+//        HWREG16 (UCS_BASE | OFS_UCSCTL2) = (0 & 0x03ff) | 6 << 10;
+
+        // Przedział częstotliwości
+        HWREG8 (UCS_BASE | OFS_UCSCTL1) = DCORSEL_6;
+
+//        // Re-enable FLL
+//         __bic_SR_register(SCG0);
+
+        while (HWREG8(UCS_BASE | OFS_UCSCTL7_L) & DCOFFG)
+        {
+            //Clear OSC flaut Flags
+            HWREG8(UCS_BASE | OFS_UCSCTL7_L) &= ~(DCOFFG);
+
+            //Clear OFIFG fault flag
+            HWREG8(SFR_BASE + OFS_SFRIFG1) &= ~OFIFG;
+        }
+
+//        // Restore previous SCG0
+//        __bis_SR_register(srRegisterState);
+
+
+
+
+
+
+/**
+ * Ustalamy źródło dla każdego z trzech sygnałów zegarowych:
+ *
+ * SELM__XT1CLK    : MCLK Source Select XT1CLK
+ * SELM__VLOCLK    : MCLK Source Select VLOCLK
+ * SELM__REFOCLK   : MCLK Source Select REFOCLK
+ * SELM__DCOCLK    : MCLK Source Select DCOCLK
+ * SELM__DCOCLKDIV : MCLK Source Select DCOCLKDIV
+ * SELM__XT2CLK    : MCLK Source Select XT2CLK
+ *
+ * SELS__XT1CLK    : SMCLK Source Select XT1CLK
+ * SELS__VLOCLK    : SMCLK Source Select VLOCLK
+ * SELS__REFOCLK   : SMCLK Source Select REFOCLK
+ * SELS__DCOCLK    : SMCLK Source Select DCOCLK
+ * SELS__DCOCLKDIV : SMCLK Source Select DCOCLKDIV
+ * SELS__XT2CLK    : SMCLK Source Select XT2CLK
+ *                 :
+ * SELA__XT1CLK    : ACLK Source Select XT1CLK
+ * SELA__VLOCLK    : ACLK Source Select VLOCLK
+ * SELA__REFOCLK   : ACLK Source Select REFOCLK
+ * SELA__DCOCLK    : ACLK Source Select DCOCLK
+ * SELA__DCOCLKDIV : ACLK Source Select DCOCLKDIV
+ * SELA__XT2CLK    : ACLK Source Select XT2CLK
+ *
+ * Uwaga! Użyłem operatora =, a nie |=, żeby nadpisać wykluczające się ustawienia!
+ */
+HWREG16 (UCS_BASE | OFS_UCSCTL4) = SELM__DCOCLK | SELS__DCOCLK | SELA__REFOCLK;
+
+
+
+
+
+
+
+
 #else
 
         UCS_clockSignalInit(

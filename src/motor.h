@@ -12,9 +12,12 @@
 #include <stdint.h>
 
 extern void initPWM (void);
+extern void initTimerA1 (void);
 extern void moveAbsolute (uint16_t microSteps);
-extern void moveRightRelative (uint16_t microSteps);
-extern void moveLeftRelative (uint16_t microSteps);
-extern void rotate (void);
+//extern void moveRightRelative (uint16_t microSteps);
+//extern void moveLeftRelative (uint16_t microSteps);
+extern void moveRightRelative ();
+extern void moveLeftRelative ();
+//extern void rotate (void);
 
 #endif /* MOTOR_H_ */
